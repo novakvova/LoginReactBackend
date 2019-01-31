@@ -23,6 +23,8 @@ namespace BackEndProduct.ViewModels
         public string image { get; set; }
 
         [Required(ErrorMessage = "Поле є обов'язковим")]
+        //[EmailAddress(ErrorMessage ="Лох вкажи емайл")]
+        //[RegularExpression("")]
         public string description { get; set; }
     }
 }

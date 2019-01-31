@@ -1,4 +1,5 @@
 ﻿using BackEndProduct.Models;
+using BackEndProduct.Models.Entitites;
 using BackEndProduct.ViewModels;
 using System;
 using System.Collections.Generic;
@@ -26,12 +27,14 @@ namespace BackEndProduct.Controllers
         // GET api/values
         public IHttpActionResult Get()
         {
+            var folder = Url
+                .Content(ConfigurationManager.AppSettings["ImagePath"]);
             var model = _context.Games
                 .Select(g => new GameItemViewModel
                 {
                     id = g.Id,
                     title = g.Title,
-                    image = g.Image,
+                    image = folder+g.Image,
                     description = g.Description
                 }).ToList();
 
@@ -50,10 +53,33 @@ namespace BackEndProduct.Controllers
                 string base64 = model.image.Split(',')[1];
                 byte[] imageBytes = Convert.FromBase64String(base64);
                 File.WriteAllBytes(imagePath, imageBytes);
-                return Content(HttpStatusCode.OK, new { success = true });
+                Game game = new Game()
+                {
+                    Image= uniqueName,
+                    Description = model.description,
+                    Title=model.title
+                };
+                _context.Games.Add(game);
+                _context.SaveChanges();
+
+                //var request = HttpContext.Current.Request;
+                //var url = request.Url.GetLeftPart(UriPartial.Authority) +
+                //    request.ApplicationPath;
+                var folder = Url.Content(ConfigurationManager.AppSettings["ImagePath"]);
+                var image = folder + uniqueName;
+                //folder += uniqueName;
+                GameItemViewModel responseModel = new GameItemViewModel()
+                {
+                    id=game.Id,
+                    title=game.Title,
+                    description=game.Description,
+                    image=image
+                };
+                return Content(HttpStatusCode.OK, responseModel);
             }
 
-            var errors = new ExpandoObject() as IDictionary<string, object>;
+            //var errors = new ExpandoObject() as IDictionary<string, object>;
+            var errors = new Dictionary<string, string>();
 
             var errorList = ModelState
                 .Where(x => x.Value.Errors.Count > 0)

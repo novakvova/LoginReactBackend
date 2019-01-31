@@ -1,6 +1,10 @@
-﻿using System;
+﻿using Autofac;
+using Autofac.Integration.WebApi;
+using BackEndProduct.Models;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Web;
 using System.Web.Http;
 using System.Web.Mvc;
@@ -13,6 +17,7 @@ namespace BackEndProduct
     {
         protected void Application_Start()
         {
+            AutofacConfig.RegisterAutofac();
             AreaRegistration.RegisterAllAreas();
             GlobalConfiguration.Configure(WebApiConfig.Register);
             FilterConfig.RegisterGlobalFilters(GlobalFilters.Filters);

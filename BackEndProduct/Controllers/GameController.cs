@@ -24,11 +24,28 @@ namespace BackEndProduct.Controllers
         {
             _context = context;
         }
+        private Dictionary<string, string> GetErrorsByModel(ModelStateDictionary modelErrors)
+        {
+            var errors = new Dictionary<string, string>();
+
+            var errorList = modelErrors
+                .Where(x => x.Value.Errors.Count > 0)
+                .ToDictionary(
+                    kvp => kvp.Key,
+                    kvp => kvp.Value.Errors.Select(e => e.ErrorMessage).ToArray()[0]
+                );
+            foreach (var item in errorList)
+            {
+                var key = item.Key.Split('.')[1];
+                errors.Add(key, item.Value);
+            }
+            return errors;
+        }
         // GET api/values
         public IHttpActionResult Get()
         {
-            var folder = Url
-                .Content(ConfigurationManager.AppSettings["ImagePath"]);
+            var folder = Url.Content(ConfigurationManager
+                .AppSettings["ImagePath"]);
             var model = _context.Games
                 .Select(g => new GameItemViewModel
                 {
@@ -38,6 +55,21 @@ namespace BackEndProduct.Controllers
                     description = g.Description
                 }).ToList();
 
+            return Content(HttpStatusCode.OK, model);
+        }
+        public IHttpActionResult Get(int id)
+        {
+            var model = new GameItemViewModel();
+            var game=_context.Games.SingleOrDefault(g => g.Id == id);
+            if(game!=null)
+            {
+                var folder = Url.Content(ConfigurationManager
+                .AppSettings["ImagePath"]);
+                model.id = game.Id;
+                model.title = game.Title;
+                model.image = folder + game.Image;
+                model.description = game.Description;
+            }
             return Content(HttpStatusCode.OK, model);
         }
         public IHttpActionResult PostAdd(GameCreateViewModel model)
@@ -61,13 +93,9 @@ namespace BackEndProduct.Controllers
                 };
                 _context.Games.Add(game);
                 _context.SaveChanges();
-
-                //var request = HttpContext.Current.Request;
-                //var url = request.Url.GetLeftPart(UriPartial.Authority) +
-                //    request.ApplicationPath;
+               
                 var folder = Url.Content(ConfigurationManager.AppSettings["ImagePath"]);
                 var image = folder + uniqueName;
-                //folder += uniqueName;
                 GameItemViewModel responseModel = new GameItemViewModel()
                 {
                     id=game.Id,
@@ -79,32 +107,50 @@ namespace BackEndProduct.Controllers
             }
 
             //var errors = new ExpandoObject() as IDictionary<string, object>;
-            var errors = new Dictionary<string, string>();
-
-            var errorList = ModelState
-                .Where(x => x.Value.Errors.Count > 0)
-                .ToDictionary(
-                    kvp => kvp.Key,
-                    kvp => kvp.Value.Errors.Select(e => e.ErrorMessage).ToArray()[0]
-                );
-            foreach (var item in errorList)
-            {
-                var key = item.Key.Split('.')[1];
-                errors.Add(key, item.Value.ToString());
-            }
-            //dynamic slavic = new ExpandoObject();
-            //slavic.firstName = "Петро";
-            //errors.title = "Обов'язкове поле";
+            var errors = GetErrorsByModel(ModelState);
             return Content(HttpStatusCode.BadRequest, errors);
         }
-        public IHttpActionResult Put(GameCreateViewModel model)
+        public IHttpActionResult Put(GameItemViewModel model)
         {
             if (ModelState.IsValid)
             {
-                return Content(HttpStatusCode.OK, new { success = true });
+                var game = _context.Games
+                    .SingleOrDefault(g => g.Id == model.id);
+                if(game!=null)
+                {
+                    game.Title = model.title;
+                    game.Description = model.description;
+                    _context.SaveChanges(); 
+                }
+                return Content(HttpStatusCode.OK, model);
             }
 
-            return Content(HttpStatusCode.BadRequest, new { success = true });
+            var errors = GetErrorsByModel(ModelState);
+
+            return Content(HttpStatusCode.BadRequest, errors);
+        }
+        public IHttpActionResult Delete(int id)
+        {
+            try
+            {
+                var game = _context.Games
+                    .SingleOrDefault(g => g.Id == id);
+                if (game != null)
+                {
+                    _context.Games.Remove(game);
+                    _context.SaveChanges();
+                }
+                return Content(HttpStatusCode.OK, new { success = true });
+            }
+            catch(Exception ex)
+            {
+                return Content(HttpStatusCode.InternalServerError,  
+                    new { errors = new { global = ex.Message } } );
+            }
+                
+            
+
+            
         }
     }
 }

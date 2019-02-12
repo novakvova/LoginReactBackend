@@ -8,7 +8,7 @@ using System.Web.Http.Cors;
 
 namespace BackEndProduct.Controllers
 {
-    //[Authorize]
+    [Authorize]
     [EnableCors(origins: "http://localhost:3000", headers: "*", methods: "*")]
     public class ValuesController : ApiController
     {
